@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.drawable.Drawable;
 import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -30,9 +31,12 @@ import com.afollestad.async.Action;
 import com.architjn.acjmusicplayer.R;
 import com.architjn.acjmusicplayer.ui.layouts.activity.AlbumActivity;
 import com.architjn.acjmusicplayer.utils.ColorCache;
+import com.architjn.acjmusicplayer.utils.ImageConverter;
 import com.architjn.acjmusicplayer.utils.Utils;
+import com.architjn.acjmusicplayer.utils.handlers.AlbumImgHandler;
 import com.architjn.acjmusicplayer.utils.items.Album;
 import com.squareup.picasso.Picasso;
+import com.squareup.picasso.Target;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -70,7 +74,7 @@ public class AlbumListAdapter extends RecyclerView.Adapter<AlbumListAdapter.Simp
         int size = setSize(holder);
         if (position == 0 && ANIM_TILL == 0)
             setAnimTill(size);
-        setArtistImg(holder, position, size);
+        setAlbumImg(holder, position, size);
         holder.mainView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -85,16 +89,51 @@ public class AlbumListAdapter extends RecyclerView.Adapter<AlbumListAdapter.Simp
         });
     }
 
-    private void setArtistImg(final SimpleItemViewHolder holder, final int position, final int size) {
-        String path = items.get(position).getAlbumArtPath();
-        if (isPathValid(path))
-            Picasso.with(context).load(new File(path))
-                    .centerCrop().resize(size, size).into(holder.img);
-        else
-            holder.img.setImageBitmap(new Utils(context)
-                    .getBitmapOfVector(R.drawable.default_art, size, size));
+    private void setAlbumImg(final SimpleItemViewHolder holder, final int position, final int size) {
+        AlbumImgHandler imgHandler = new AlbumImgHandler(context) {
+            @Override
+            public void onDownloadComplete(final String url) {
+                if (url != null)
+                    ((Activity) context).runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            Picasso.with(context).load(new File(url)).centerCrop().resize(size, size).into(holder.img);
+                            setImageToView(url, holder);
+                        }
+                    });
+            }
+        };
+        String path = imgHandler.getAlbumImgFromDB(items.get(position).getAlbumTitle(), items.get(position).getAlbumArtist());
+        if (path != null && !path.matches("")) {
+            setImageToView(path, holder);
+        } else {
+            String urlIfAny = imgHandler.getAlbumArtWork(items.get(position).getAlbumArtist(), items.get(position).getAlbumTitle(), position);
+            if (urlIfAny != null)
+                setImageToView(urlIfAny, holder);
+        }
+
         handleRevealAnimation(holder, position);
         handleColorAnimation(holder, path, size, position);
+    }
+
+    public void setImageToView(String url, final SimpleItemViewHolder holder) {
+        Picasso.with(context).load(new File(url)).into(new Target() {
+            @Override
+            public void onBitmapLoaded(Bitmap bitmap, Picasso.LoadedFrom from) {
+                Bitmap circularBitmap = ImageConverter.getRoundedCornerBitmap(bitmap, 100);
+                holder.img.setImageBitmap(circularBitmap);
+            }
+
+            @Override
+            public void onBitmapFailed(Drawable errorDrawable) {
+
+            }
+
+            @Override
+            public void onPrepareLoad(Drawable placeHolderDrawable) {
+
+            }
+        });
     }
 
     private void handleRevealAnimation(SimpleItemViewHolder holder, int position) {
