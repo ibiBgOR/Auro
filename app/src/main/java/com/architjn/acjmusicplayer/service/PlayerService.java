@@ -51,6 +51,7 @@ public class PlayerService extends Service {
             }
         }
     };
+    private ListType listType;
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
