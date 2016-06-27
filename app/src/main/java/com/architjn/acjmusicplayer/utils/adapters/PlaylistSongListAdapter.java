@@ -3,6 +3,7 @@ package com.architjn.acjmusicplayer.utils.adapters;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.PopupMenu;
 import android.support.v7.widget.RecyclerView;
 import android.util.DisplayMetrics;
@@ -15,6 +16,7 @@ import android.widget.TextView;
 
 import com.architjn.acjmusicplayer.R;
 import com.architjn.acjmusicplayer.service.PlayerService;
+import com.architjn.acjmusicplayer.task.FetchAlbum;
 import com.architjn.acjmusicplayer.utils.ListSongs;
 import com.architjn.acjmusicplayer.utils.Utils;
 import com.architjn.acjmusicplayer.utils.items.Song;
@@ -54,9 +56,20 @@ public class PlaylistSongListAdapter extends RecyclerView.Adapter<PlaylistSongLi
     }
 
     private void setAlbumArt(int position, SimpleItemViewHolder holder) {
-        Picasso.with(context).load(new File(ListSongs.getAlbumArt(context,
-                items.get(position).getAlbumId()))).resize(dpToPx(50),
-                dpToPx(50)).centerCrop().into(holder.img);
+        String path = ListSongs.getAlbumArt(context, items.get(position).getAlbumName(), items.get(position).getArtist(), FetchAlbum.Quality.LOW);
+        if (path != null) {
+            Picasso.with(context).load(new File(path)).resize(dpToPx(50),
+                    dpToPx(50)).centerCrop().into(holder.img);
+        } else {
+            setDefaultView(holder);
+        }
+    }
+
+    private void setDefaultView(SimpleItemViewHolder holder) {
+        Utils utils = new Utils(context);
+        int size = (utils.getWindowWidth() - dpToPx(1)) / 2;
+        holder.img.setImageBitmap(utils.getBitmapOfVector(R.drawable.default_art,
+                size, size));
     }
 
     private void setOnClicks(final SimpleItemViewHolder holder, final int position) {

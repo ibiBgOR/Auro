@@ -3,6 +3,8 @@ package com.architjn.acjmusicplayer.utils.adapters;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.drawable.Drawable;
 import android.support.v7.widget.PopupMenu;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
@@ -14,10 +16,14 @@ import android.widget.TextView;
 
 import com.architjn.acjmusicplayer.R;
 import com.architjn.acjmusicplayer.service.PlayerService;
+import com.architjn.acjmusicplayer.task.FetchAlbum;
+import com.architjn.acjmusicplayer.utils.ImageConverter;
 import com.architjn.acjmusicplayer.utils.ListSongs;
 import com.architjn.acjmusicplayer.utils.Utils;
+import com.architjn.acjmusicplayer.utils.handlers.AlbumImgHandler;
 import com.architjn.acjmusicplayer.utils.items.Song;
 import com.squareup.picasso.Picasso;
+import com.squareup.picasso.Target;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -63,16 +69,50 @@ public class ArtistSongListAdapter extends RecyclerView.Adapter<ArtistSongListAd
         setOnClicks(holder, position - 1);
     }
 
-    private void setAlbumArt(int position, SimpleItemViewHolder holder) {
-        String path = ListSongs.getAlbumArt(context,
-                items.get(position).getAlbumId());
-        Utils utils = new Utils(context);
-        int size = utils.dpToPx(50);
-        if (path != null)
-            Picasso.with(context).load(new File(path)).resize(size,
-                    size).centerCrop().into(holder.img);
-        else {
-            holder.img.setImageBitmap(utils.getBitmapOfVector(R.drawable.default_art, size, size));
+    private void setAlbumArt(int position, final SimpleItemViewHolder holder) {
+        AlbumImgHandler imgHandler = new AlbumImgHandler(context) {
+            @Override
+            public void onDownloadComplete(final String url) {
+                if (url != null)
+                    ((Activity) context).runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            Picasso.with(context).load(new File(url)).into(holder.img);
+                            setImageToView(url, holder);
+                        }
+                    });
+            }
+        };
+        String path = imgHandler.getAlbumImgFromDB(items.get(position).getAlbumName(), items.get(position).getArtist(), FetchAlbum.Quality.MEDIUM);
+        if (path != null && !path.matches("")) {
+            setImageToView(path, holder);
+        } else {
+            String urlIfAny = imgHandler.getAlbumArtWork(items.get(position).getAlbumName(), items.get(position).getArtist(), position, FetchAlbum.Quality.MEDIUM);
+            setImageToView(urlIfAny, holder);
+        }
+    }
+
+    public void setImageToView(String url, final SimpleItemViewHolder holder) {
+        Target target = new Target() {
+            @Override
+            public void onBitmapLoaded(Bitmap bitmap, Picasso.LoadedFrom from) {
+                Bitmap circularBitmap = ImageConverter.getRoundedCornerBitmap(bitmap, 100);
+                holder.img.setImageBitmap(circularBitmap);
+            }
+
+            @Override
+            public void onBitmapFailed(Drawable errorDrawable) {
+            }
+
+            @Override
+            public void onPrepareLoad(Drawable placeHolderDrawable) {
+            }
+        };
+
+        if (url != null) {
+            Picasso.with(context).load(new File(url)).into(target);
+        } else {
+            Picasso.with(context).load(R.drawable.default_art).resize(holder.img.getMaxWidth(), holder.img.getMaxHeight()).into(target);
         }
     }
 

@@ -1,14 +1,19 @@
 package com.architjn.acjmusicplayer.utils;
 
+import android.app.Activity;
 import android.content.Context;
 import android.database.Cursor;
 import android.provider.MediaStore;
 
+import com.architjn.acjmusicplayer.task.FetchAlbum;
+import com.architjn.acjmusicplayer.utils.handlers.AlbumImgHandler;
 import com.architjn.acjmusicplayer.utils.items.Album;
 import com.architjn.acjmusicplayer.utils.items.Artist;
 import com.architjn.acjmusicplayer.utils.items.Search;
 import com.architjn.acjmusicplayer.utils.items.Song;
+import com.squareup.picasso.Picasso;
 
+import java.io.File;
 import java.util.ArrayList;
 
 /**
@@ -444,4 +449,25 @@ public class ListSongs {
         }
         return imagePath;
     }
+
+    public static String getAlbumArt(final Context context, String albumName, String artistName, FetchAlbum.Quality quality) {
+        return getAlbumArt(context, albumName, artistName, quality, null);
+    }
+
+    public static String getAlbumArt(final Context context, String albumName, String artistName, FetchAlbum.Quality quality, AlbumImgHandler handler) {
+        if (handler == null) {
+            handler = new AlbumImgHandler(context) {
+                @Override
+                public void onDownloadComplete(final String url) {
+                    // No action because no callback
+                }
+            };
+        }
+        String path = handler.getAlbumImgFromDB(albumName, artistName, quality);
+        if (path != null && !path.matches("")) {
+            return path;
+        }
+        return handler.getAlbumArtWork(albumName, artistName, 0, quality);
+    }
+
 }

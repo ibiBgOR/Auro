@@ -108,7 +108,7 @@ public class PlayerHandler {
         }
         notifactionHandler.updateNotificationView();
         notifactionHandler.changeNotificationDetails(getCurrentPlayingSong().getName(),
-                getCurrentPlayingSong().getArtist(), getCurrentPlayingSong().getAlbumId(), state);
+                getCurrentPlayingSong().getArtist(), getCurrentPlayingSong().getAlbumName(), state);
     }
 
     public int getNextSongPosition(int currentPos) {

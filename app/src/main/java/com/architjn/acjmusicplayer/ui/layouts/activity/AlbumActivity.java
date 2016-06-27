@@ -1,5 +1,6 @@
 package com.architjn.acjmusicplayer.ui.layouts.activity;
 
+import android.app.Activity;
 import android.app.ActivityManager;
 import android.database.Cursor;
 import android.graphics.BitmapFactory;
@@ -15,19 +16,24 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.MenuItem;
 import android.view.WindowManager;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 
 import com.architjn.acjmusicplayer.R;
+import com.architjn.acjmusicplayer.task.FetchAlbum;
 import com.architjn.acjmusicplayer.utils.ListSongs;
 import com.architjn.acjmusicplayer.utils.PermissionChecker;
 import com.architjn.acjmusicplayer.utils.Utils;
 import com.architjn.acjmusicplayer.utils.adapters.AlbumSongListAdapter;
+import com.architjn.acjmusicplayer.utils.handlers.AlbumImgHandler;
+import com.squareup.picasso.Callback;
 import com.squareup.picasso.Picasso;
 
 import java.io.File;
+import java.util.List;
 
 /**
  * Created by architjn on 30/11/15.
@@ -38,6 +44,9 @@ public class AlbumActivity extends AppCompatActivity {
     private ImageView albumArt;
     private PermissionChecker permissionChecker;
 
+    private String albumName;
+    private String albumArtist;
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         getWindow().setFlags(
@@ -47,6 +56,10 @@ public class AlbumActivity extends AppCompatActivity {
         overridePendingTransition(0, 0);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_album);
+
+        albumName = getIntent().getStringExtra("albumName");
+        albumArtist = getIntent().getStringExtra("albumArtist");
+
         initView();
     }
 
@@ -93,27 +106,39 @@ public class AlbumActivity extends AppCompatActivity {
         permissionChecker.onRequestPermissionsResult(requestCode, permissions, grantResults);
     }
 
-    public void setAlbumArt(int width, int height) {
-        Cursor cursor = getContentResolver().query(MediaStore.Audio.Albums.EXTERNAL_CONTENT_URI,
-                new String[]{MediaStore.Audio.Albums._ID, MediaStore.Audio.Albums.ALBUM_ART},
-                MediaStore.Audio.Albums._ID + "=?",
-                new String[]{String.valueOf(getIntent().getLongExtra("albumId", 0))},
-                null);
-        if (cursor != null && cursor.moveToFirst()) {
-            String imagePath = cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Albums.ALBUM_ART));
-            try {
-                if (imagePath == null) {
-                    Utils utils = new Utils(this);
-                    albumArt.setImageBitmap(utils.getBitmapOfVector(R.drawable.default_art,
-                            width, width));
-                    return;
-                }
-                Picasso.with(AlbumActivity.this)
-                        .load(new File(imagePath))
-                        .into(albumArt);
-            } catch (NullPointerException e) {
-                e.printStackTrace();
+    private AlbumImgHandler albumImgHandler;
+
+    public void setAlbumArt(final int width, final int height) {
+        albumImgHandler = new AlbumImgHandler(AlbumActivity.this) {
+            @Override
+            public void onDownloadComplete(String url) {
+                setImage(url, width, height);
             }
+        };
+
+        String url = ListSongs.getAlbumArt(this, albumName, albumArtist, FetchAlbum.Quality.MEDIUM);
+        if (url == null || url.length() == 0) {
+            Utils utils = new Utils(this);
+            albumArt.setImageBitmap(utils.getBitmapOfVector(R.drawable.default_art, width, width));
+        } else {
+            Picasso.with(AlbumActivity.this)
+                    .load(new File(url))
+                    .resize(width, width)
+                    .centerCrop()
+                    .into(albumArt, new Callback() {
+                        @Override
+                        public void onSuccess() {
+                            String url = ListSongs.getAlbumArt(AlbumActivity.this, albumName, albumArtist, FetchAlbum.Quality.HIGH, albumImgHandler);
+                            if (url != null && url.length() != 0) {
+                                setImage(url, width, height);
+                            }
+                        }
+
+                        @Override
+                        public void onError() {
+                            Log.e(AlbumActivity.class.getSimpleName(), "There was an error while loading the albumArt.");
+                        }
+                    });
         }
 
         int colorPrimary = getIntent().getIntExtra("albumColor", ContextCompat.getColor(this, R.color.colorPrimary));
@@ -128,7 +153,24 @@ public class AlbumActivity extends AppCompatActivity {
                     BitmapFactory.decodeResource(getResources(), R.mipmap.ic_launcher), colorPrimary);
             setTaskDescription(taskDescription);
         }
-        cursor.close();
+    }
+
+    private void setImage(final String url, final int width, final int height) {
+        if (url == null || url.length() == 0) {
+            return;
+        }
+
+        AlbumActivity.this.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Picasso.with(AlbumActivity.this)
+                        .load(new File(url))
+                        .placeholder(albumArt.getDrawable())
+                        .resize(width, width)
+                        .centerCrop()
+                        .into(albumArt);
+            }
+        });
     }
 
     @Override

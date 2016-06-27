@@ -29,6 +29,7 @@ import android.widget.TextView;
 
 import com.afollestad.async.Action;
 import com.architjn.acjmusicplayer.R;
+import com.architjn.acjmusicplayer.task.FetchAlbum;
 import com.architjn.acjmusicplayer.ui.layouts.activity.AlbumActivity;
 import com.architjn.acjmusicplayer.utils.ColorCache;
 import com.architjn.acjmusicplayer.utils.ImageConverter;
@@ -97,19 +98,17 @@ public class AlbumListAdapter extends RecyclerView.Adapter<AlbumListAdapter.Simp
                     ((Activity) context).runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            Picasso.with(context).load(new File(url)).centerCrop().resize(size, size).into(holder.img);
                             setImageToView(url, holder);
                         }
                     });
             }
         };
-        String path = imgHandler.getAlbumImgFromDB(items.get(position).getAlbumTitle(), items.get(position).getAlbumArtist());
+        String path = imgHandler.getAlbumImgFromDB(items.get(position).getAlbumTitle(), items.get(position).getAlbumArtist(), FetchAlbum.Quality.MEDIUM);
         if (path != null && !path.matches("")) {
             setImageToView(path, holder);
         } else {
-            String urlIfAny = imgHandler.getAlbumArtWork(items.get(position).getAlbumArtist(), items.get(position).getAlbumTitle(), position);
-            if (urlIfAny != null)
-                setImageToView(urlIfAny, holder);
+            String urlIfAny = imgHandler.getAlbumArtWork(items.get(position).getAlbumTitle(), items.get(position).getAlbumArtist(), position, FetchAlbum.Quality.MEDIUM);
+            setImageToView(urlIfAny, holder);
         }
 
         handleRevealAnimation(holder, position);
@@ -117,23 +116,33 @@ public class AlbumListAdapter extends RecyclerView.Adapter<AlbumListAdapter.Simp
     }
 
     public void setImageToView(String url, final SimpleItemViewHolder holder) {
-        Picasso.with(context).load(new File(url)).into(new Target() {
+        Target target = new Target() {
             @Override
             public void onBitmapLoaded(Bitmap bitmap, Picasso.LoadedFrom from) {
-                Bitmap circularBitmap = ImageConverter.getRoundedCornerBitmap(bitmap, 100);
-                holder.img.setImageBitmap(circularBitmap);
+                holder.img.setImageBitmap(bitmap);
             }
 
             @Override
             public void onBitmapFailed(Drawable errorDrawable) {
-
+                Log.e("", "");
             }
 
             @Override
             public void onPrepareLoad(Drawable placeHolderDrawable) {
-
+                Log.e("", "");
             }
-        });
+        };
+
+        if (url != null) {
+            Picasso.with(context).load(new File(url)).into(target);
+        } else {
+            Utils utils = new Utils(context);
+            Bitmap bm = utils.getBitmapOfVector(R.drawable.default_art, holder.img.getWidth(), holder.img.getHeight());
+            if (bm != null) {
+                holder.img.setImageBitmap(bm);
+            }
+            //Picasso.with(context).load(R.drawable.default_art).resize(holder.img.getMaxWidth(), holder.img.getMaxHeight()).into(target);
+        }
     }
 
     private void handleRevealAnimation(SimpleItemViewHolder holder, int position) {
@@ -177,6 +186,7 @@ public class AlbumListAdapter extends RecyclerView.Adapter<AlbumListAdapter.Simp
     private void openAlbum(SimpleItemViewHolder holder, int position) {
         Intent i = new Intent(context, AlbumActivity.class);
         i.putExtra("albumName", items.get(position).getAlbumTitle());
+        i.putExtra("albumArtist", items.get(position).getAlbumArtist());
         i.putExtra("albumId", items.get(position).getAlbumId());
         i.putExtra("albumColor", holder.defaultAlbumColor);
         ActivityOptionsCompat options = ActivityOptionsCompat.makeSceneTransitionAnimation(

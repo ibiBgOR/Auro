@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.drawable.Drawable;
 import android.media.MediaExtractor;
@@ -125,6 +126,7 @@ public class Utils {
                 intent.setClass(context, AlbumActivity.class);
                 intent.putExtra("albumId", items.get(position).getAlbumId());
                 intent.putExtra("albumName", items.get(position).getAlbumName());
+                intent.putExtra("albumArtist", items.get(position).getArtist());
                 context.startActivity(intent);
                 break;
             case R.id.popup_song_open_artist:
@@ -236,7 +238,8 @@ public class Utils {
 
         MediaFormat mf = mex.getTrackFormat(0);
 
-        int bitRate = mf.getInteger(MediaFormat.KEY_BIT_RATE);
+        //int bitRate = mf.getInteger(MediaFormat.KEY_BIT_RATE);
+        int bitRate = mf.getInteger("bit-rate");
         int sampleRate = mf.getInteger(MediaFormat.KEY_SAMPLE_RATE);
         String mime = mf.getString(MediaFormat.KEY_MIME);
         File songFile = new File(items.get(position).getPath());
@@ -330,7 +333,12 @@ public class Utils {
         Drawable vectorDrawable = context.getDrawable(id);
         if (vectorDrawable != null)
             vectorDrawable.setBounds(0, 0, width, height);
-        Bitmap bm = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        Bitmap bm = null;
+        try {
+            bm = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        } catch (Exception e) {
+            return bm;
+        }
         Canvas canvas = new Canvas(bm);
         if (vectorDrawable != null)
             vectorDrawable.draw(canvas);

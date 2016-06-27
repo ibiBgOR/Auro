@@ -19,13 +19,13 @@ public abstract class AlbumImgHandler extends SQLiteOpenHelper {
 
     private static final int DATABASE_VERSION = 1;
     private static final String DATABASE_NAME = "AlbumDB";
-    private static final String TABLE_PLAYBACK = "album";
+    private static final String TABLE_ALBUM = "album";
     private static final String ALBUM_KEY_ID = "album_id";
     private static final String ALBUM_KEY_NAME = "album_name";
     private static final String ARTIST_KEY_NAME = "artist_name";
     private static final String ALBUM_KEY_URL = "album_img";
+    private static final String IMAGE_QUALITY = "image_quality";
     private final Integer[] randomNumbers;
-    private int pos = 0;
     private Context context;
 
     public AlbumImgHandler(Context context) {
@@ -36,28 +36,31 @@ public abstract class AlbumImgHandler extends SQLiteOpenHelper {
 
     @Override
     public void onCreate(SQLiteDatabase sqLiteDatabase) {
-        String CREATE_PLAYBACK_SONG_TABLE = "CREATE TABLE " + TABLE_PLAYBACK + " (" +
+        String CREATE_PLAYBACK_SONG_TABLE = "CREATE TABLE " + TABLE_ALBUM + " (" +
                 ALBUM_KEY_ID + " INTEGER PRIMARY KEY AUTOINCREMENT," +
                 ALBUM_KEY_NAME + " TEXT," +
                 ARTIST_KEY_NAME + " TEXT," +
-                ALBUM_KEY_URL + " TEXT)";
+                ALBUM_KEY_URL + " TEXT," +
+                IMAGE_QUALITY + " TEXT)";
         sqLiteDatabase.execSQL(CREATE_PLAYBACK_SONG_TABLE);
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase sqLiteDatabase, int i, int i1) {
-        sqLiteDatabase.execSQL("DROP TABLE IF EXISTS " + TABLE_PLAYBACK);
+        sqLiteDatabase.execSQL("DROP TABLE IF EXISTS " + TABLE_ALBUM);
     }
 
-    public String getAlbumArtWork(final String artistName, String albumName, int pos) {
-        String url = getAlbumImgFromDB(albumName, artistName);
+    public String getAlbumArtWork(final String albumName, String artistName, int pos, FetchAlbum.Quality quality) {
+        String url = getAlbumImgFromDB(albumName, artistName, quality);
         if (url != null) {
-            if ((new File(url)).exists())
+            if ((new File(url)).exists()) {
                 return url;
-            else
-                removeAlbumImgFromDB(albumName, artistName);
+            }
+            else {
+                removeAlbumImgFromDB(albumName, artistName, quality);
+            }
         } else {
-            new FetchAlbum(context, albumName, artistName, randomNumbers[pos], this);
+            new FetchAlbum(context, albumName, artistName, randomNumbers[pos], quality, this);
         }
         return null;
     }
@@ -65,37 +68,44 @@ public abstract class AlbumImgHandler extends SQLiteOpenHelper {
 
     public abstract void onDownloadComplete(String url);
 
-    public void updateAlbumArtWorkInDB(String albumName, String artistName, String url) {
+    public void updateAlbumArtWorkInDB(String albumName, String artistName, String url, FetchAlbum.Quality quality) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.putNull(ALBUM_KEY_ID);
         values.put(ALBUM_KEY_NAME, albumName);
         values.put(ARTIST_KEY_NAME, artistName);
         values.put(ALBUM_KEY_URL, url);
-        db.insert(TABLE_PLAYBACK, null, values);
+        values.put(IMAGE_QUALITY, quality.name());
+        db.insert(TABLE_ALBUM, null, values);
         db.close();
     }
 
-    public String getAlbumImgFromDB(String albumName, String artistName) {
-        SQLiteDatabase db = this.getWritableDatabase();
-        String query = "SELECT  * FROM " + TABLE_PLAYBACK + " WHERE "
-                + ALBUM_KEY_NAME + "='" + albumName.replace("'", "''") + "'" +
-                " AND " + ARTIST_KEY_NAME + "='"  + artistName.replace("'", "''") + "'";
-        Cursor cursor = db.rawQuery(query, null);
-        if (cursor.moveToFirst()) {
-            return cursor.getString(2);
+    public String getAlbumImgFromDB(String albumName, String artistName, FetchAlbum.Quality quality) {
+        Cursor cursor = null;
+        try (SQLiteDatabase db = this.getWritableDatabase()) {
+            String query = "SELECT  * FROM " + TABLE_ALBUM + " WHERE "
+                    + ALBUM_KEY_NAME + "='" + albumName.replace("'", "''") + "'" +
+                    " AND " + ARTIST_KEY_NAME + "='" + artistName.replace("'", "''") + "'" +
+                    " AND " + IMAGE_QUALITY + "='" + quality.name().replace("'", "''") + "'";
+            cursor = db.rawQuery(query, null);
+            if (cursor.moveToFirst()) {
+                return cursor.getString(3);
+            }
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
         }
-        db.close();
-        cursor.close();
         return null;
     }
 
-    public void removeAlbumImgFromDB(String albumName, String artistName) {
+    public void removeAlbumImgFromDB(String albumName, String artistName, FetchAlbum.Quality quality) {
         SQLiteDatabase db = this.getWritableDatabase();
-        String query = "DELETE  FROM " + TABLE_PLAYBACK + " WHERE "
+        String query = "DELETE  FROM " + TABLE_ALBUM + " WHERE "
                 + ALBUM_KEY_NAME + "='" + albumName.replace("'", "''") + "'" +
-                " AND " + ARTIST_KEY_NAME + "='"  + artistName.replace("'", "''") + "'";
-        db.rawQuery(query, null);
+                " AND " + ARTIST_KEY_NAME + "='"  + artistName.replace("'", "''") + "'" +
+                " AND " + IMAGE_QUALITY + "='" + quality.name().replace("'", "''") + "'";
+        Cursor c = db.rawQuery(query, null);
         db.close();
     }
 

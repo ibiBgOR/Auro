@@ -81,6 +81,7 @@ public class PlaylistListAdapter extends RecyclerView.Adapter<PlaylistListAdapte
                 } else {
                     Intent playlistSongPage = new Intent(context, PlaylistActivity.class);
                     playlistSongPage.putExtra("id", items.get(position).getPlaylistId());
+                    playlistSongPage.putExtra("playlistName", items.get(position).getPlaylistName());
                     context.startActivity(playlistSongPage);
                 }
             }

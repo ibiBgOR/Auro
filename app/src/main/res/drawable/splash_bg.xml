@@ -6,9 +6,10 @@
         </shape>
     </item>
     <item
-        android:width="125.0dip"
-        android:height="125.0dip"
-        android:gravity="center">
-        <bitmap android:src="@drawable/ic_launcher" />
+        android:height="1dp"
+        android:width="1dp">
+        <bitmap
+            android:gravity="center"
+            android:src="@drawable/ic_launcher" />
     </item>
 </layer-list>

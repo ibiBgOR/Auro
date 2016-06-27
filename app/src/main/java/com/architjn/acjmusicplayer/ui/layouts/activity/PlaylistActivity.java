@@ -31,6 +31,10 @@ public class PlaylistActivity extends AppCompatActivity {
     private void initView() {
         rv = (RecyclerView) findViewById(R.id.songsListContainer);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        String playlistName = getIntent().getStringExtra("playlistName");
+        if (playlistName != null) {
+            toolbar.setTitle(playlistName);
+        }
         setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         addSongList();

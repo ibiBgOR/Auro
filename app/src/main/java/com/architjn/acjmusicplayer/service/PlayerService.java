@@ -184,7 +184,7 @@ public class PlayerService extends Service {
         notificationHandler.changeNotificationDetails(musicPlayerHandler
                 .getCurrentPlayingSong().getName(), musicPlayerHandler
                 .getCurrentPlayingSong().getArtist(), musicPlayerHandler
-                .getCurrentPlayingSong().getAlbumId(), musicPlayerHandler
+                .getCurrentPlayingSong().getAlbumName(), musicPlayerHandler
                 .getMediaPlayer().isPlaying());
     }
 

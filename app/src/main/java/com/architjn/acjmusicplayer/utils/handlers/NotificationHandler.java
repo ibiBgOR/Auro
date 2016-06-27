@@ -13,6 +13,7 @@ import android.widget.RemoteViews;
 
 import com.architjn.acjmusicplayer.R;
 import com.architjn.acjmusicplayer.service.PlayerService;
+import com.architjn.acjmusicplayer.task.FetchAlbum;
 import com.architjn.acjmusicplayer.utils.ListSongs;
 import com.architjn.acjmusicplayer.utils.Utils;
 import com.squareup.picasso.Picasso;
@@ -78,7 +79,7 @@ public class NotificationHandler {
     }
 
 
-    public void changeNotificationDetails(String songName, String artistName, long albumId, boolean playing) {
+    public void changeNotificationDetails(String songName, String artistName, String albumName, boolean playing) {
         if (Build.VERSION.SDK_INT >= 16) {
             notificationCompat.bigContentView.setTextViewText(R.id.noti_name, songName);
             notificationCompat.bigContentView.setTextViewText(R.id.noti_artist, artistName);
@@ -99,7 +100,7 @@ public class NotificationHandler {
             PendingIntent nextClickIntent = PendingIntent.getBroadcast(context, 21221, nextClick, 0);
             notificationCompat.bigContentView.setOnClickPendingIntent(R.id.noti_next_button, nextClickIntent);
             notificationCompat.contentView.setOnClickPendingIntent(R.id.noti_next_button, nextClickIntent);
-            String path = ListSongs.getAlbumArt(context, albumId);
+            String path = ListSongs.getAlbumArt(context, albumName, artistName, FetchAlbum.Quality.MEDIUM);
             int playStateRes;
             if (playing)
                 playStateRes = R.drawable.ic_pause_white_48dp;

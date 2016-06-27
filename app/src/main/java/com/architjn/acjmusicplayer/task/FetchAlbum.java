@@ -45,6 +45,7 @@ import java.util.List;
 public class FetchAlbum {
     private String artistName;
     private int random;
+    private Quality quality;
     private AlbumImgHandler handler;
     private String url;
     private Context context;
@@ -52,12 +53,19 @@ public class FetchAlbum {
     private String jsonResult;
     private Bitmap downloadedImg;
 
-    public FetchAlbum(Context context, String albumName, String artistName, int random, AlbumImgHandler handler) {
+    public enum Quality {
+        LOW,
+        MEDIUM,
+        HIGH
+    }
+
+    public FetchAlbum(Context context, String albumName, String artistName, int random, Quality quality, AlbumImgHandler handler) {
         this.context = context;
         this.albumName = albumName;
         this.artistName = artistName;
         this.context = context;
         this.random = random;
+        this.quality = quality;
         this.handler = handler;
         if (albumName == null || albumName.matches("<unknown>") || artistName == null || artistName.matches("<unknown>")) {
         } else {
@@ -65,6 +73,13 @@ public class FetchAlbum {
             builder.append(context.getResources().getString(R.string.album_fetch_url));
             try {
                 builder.append("&album=" + URLEncoder.encode(albumName, "UTF-8"));
+
+                if (artistName.contains(" & ")) {
+                    // If an album has two artists (featuring) we only use the first artist
+                    // The online service can better handle single artists.
+                    artistName = artistName.substring(0, artistName.indexOf(" & "));
+                }
+
                 builder.append("&artist=" + URLEncoder.encode(artistName, "UTF-8"));
             } catch (UnsupportedEncodingException e) {
                 e.printStackTrace();
@@ -112,11 +127,24 @@ public class FetchAlbum {
                     JSONArray imageArray = jsonResponse.getJSONObject("album").getJSONArray("image");
                     for (int i = 0; i < imageArray.length(); i++) {
                         JSONObject image = imageArray.getJSONObject(i);
-                        if (image.optString("size").matches("large") &&
+                        String qualityString = "";
+                        switch (quality) {
+                            case HIGH:
+                                qualityString = "mega";
+                                break;
+                            case MEDIUM:
+                                qualityString = "large";
+                                break;
+                            case LOW:
+                                // no break, because default quality is low
+                            default:
+                                qualityString = "medium";
+                        }
+                        if (image.optString("size").matches(qualityString) &&
                                 !image.optString("#text").matches("")) {
                             downloadedImg = downloadBitmap(image.optString("#text"));
                             String newUrl = saveImageToStorage(downloadedImg);
-                            handler.updateAlbumArtWorkInDB(albumName, artistName, newUrl);
+                            handler.updateAlbumArtWorkInDB(albumName, artistName, newUrl, quality);
                             handler.onDownloadComplete(newUrl);
                         }
                     }
@@ -145,6 +173,8 @@ public class FetchAlbum {
         fileName.append(c.get(Calendar.SECOND)).append("-");
         fileName.append(random).append("-");
         fileName.append((random / 3) * 5);
+        fileName.append("-");
+        fileName.append(quality.name());
         fileName.append(".png");
         File sdCardDirectory = Environment.getExternalStorageDirectory();
         String filePath = sdCardDirectory + "/" + context.getResources()
@@ -164,8 +194,6 @@ public class FetchAlbum {
             out.flush();
             out.close();
             return image.getPath();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
         }

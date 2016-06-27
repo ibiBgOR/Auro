@@ -15,6 +15,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.architjn.acjmusicplayer.R;
+import com.architjn.acjmusicplayer.task.FetchAlbum;
 import com.architjn.acjmusicplayer.ui.layouts.activity.AlbumActivity;
 import com.architjn.acjmusicplayer.utils.ListSongs;
 import com.architjn.acjmusicplayer.utils.Utils;
@@ -58,8 +59,7 @@ public class ArtistSubListAdapter extends RecyclerView.Adapter<ArtistSubListAdap
     }
 
     private void setAlbumArt(final int position, final SimpleItemViewHolder holder) {
-        String path = ListSongs.getAlbumArt(context,
-                items.get(position).getAlbumId());
+        String path = ListSongs.getAlbumArt(context, items.get(position).getAlbumTitle(), items.get(position).getAlbumArtist(), FetchAlbum.Quality.MEDIUM);
         Utils utils = new Utils(context);
         int size = (utils.getWindowWidth() - (2 * utils.dpToPx(1))) / 2;
         if (path != null)
@@ -107,6 +107,7 @@ public class ArtistSubListAdapter extends RecyclerView.Adapter<ArtistSubListAdap
                         Intent i = new Intent(context, AlbumActivity.class);
                         i.putExtra("albumId", items.get(position).getAlbumId());
                         i.putExtra("albumName", items.get(position).getAlbumTitle());
+                        i.putExtra("albumArtist", items.get(position).getAlbumArtist());
                         context.startActivity(i);
                     }
                 }).start();

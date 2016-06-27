@@ -18,6 +18,7 @@ import android.widget.TextView;
 import com.architjn.acjmusicplayer.R;
 import com.architjn.acjmusicplayer.service.PlayerService;
 import com.architjn.acjmusicplayer.task.AlbumItemLoad;
+import com.architjn.acjmusicplayer.task.FetchAlbum;
 import com.architjn.acjmusicplayer.ui.layouts.activity.AlbumActivity;
 import com.architjn.acjmusicplayer.ui.layouts.activity.ArtistActivity;
 import com.architjn.acjmusicplayer.utils.ImageConverter;
@@ -178,6 +179,7 @@ public class SearchListAdapter extends RecyclerView.Adapter<SearchListAdapter.Si
                 public void onClick(View view) {
                     Intent i = new Intent(context, AlbumActivity.class);
                     i.putExtra("albumName", albums.get(getPosition(position)).getAlbumTitle());
+                    i.putExtra("albumArtist", albums.get(getPosition(position)).getAlbumArtist());
                     i.putExtra("albumId", albums.get(getPosition(position)).getAlbumId());
                     context.startActivity(i);
                 }
@@ -271,9 +273,10 @@ public class SearchListAdapter extends RecyclerView.Adapter<SearchListAdapter.Si
 
     private void setArt(SimpleItemViewHolder holder, int position) {
         //For album art
-        if (albums.get(position).getAlbumArtPath() != null) {
-            if (isFilePathExist(albums.get(position).getAlbumArtPath())) {
-                new AlbumItemLoad(context, albums.get(position).getAlbumArtPath(), holder).execute();
+        String path = ListSongs.getAlbumArt(context, albums.get(position).getAlbumTitle(), albums.get(position).getAlbumArtist(), FetchAlbum.Quality.MEDIUM);
+        if (path != null) {
+            if (isFilePathExist(path)) {
+                new AlbumItemLoad(context, path, holder).execute();
                 setAlbumArt(position, holder);
             } else setDefaultView(holder);
         } else {
@@ -297,7 +300,7 @@ public class SearchListAdapter extends RecyclerView.Adapter<SearchListAdapter.Si
     }
 
     private void setAlbumArt(int position, SimpleItemViewHolder holder) {
-        String art = albums.get(position).getAlbumArtPath();
+        String art = ListSongs.getAlbumArt(context, albums.get(position).getAlbumTitle(), albums.get(position).getAlbumArtist(), FetchAlbum.Quality.MEDIUM);
         if (art != null)
             Picasso.with(context).load(new File(art)).resize(dpToPx(180),
                     dpToPx(180)).centerCrop().into(holder.albumArt);

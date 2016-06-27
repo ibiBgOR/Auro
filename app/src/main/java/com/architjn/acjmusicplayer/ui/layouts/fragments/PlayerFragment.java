@@ -38,6 +38,7 @@ import com.afollestad.async.Action;
 import com.architjn.acjmusicplayer.R;
 import com.architjn.acjmusicplayer.service.PlayerService;
 import com.architjn.acjmusicplayer.task.ColorChangeAnimation;
+import com.architjn.acjmusicplayer.task.FetchAlbum;
 import com.architjn.acjmusicplayer.ui.layouts.activity.AlbumActivity;
 import com.architjn.acjmusicplayer.ui.layouts.activity.ArtistActivity;
 import com.architjn.acjmusicplayer.ui.layouts.activity.MainActivity;
@@ -540,8 +541,7 @@ public class PlayerFragment extends Fragment {
         String name = intent.getStringExtra("songName");
         currentSong = new PlayerDBHandler(context)
                 .getSongFromId(intent.getLongExtra("songId", 0));
-        String path = ListSongs.getAlbumArt(context,
-                currentSong.getAlbumId());
+        String path = ListSongs.getAlbumArt(context, currentSong.getAlbumName(), currentSong.getArtist(), FetchAlbum.Quality.HIGH);
         updateMiniPlayer(name, path);
         updateMainPlayer(intent, path);
         updateNavigationHeader(intent);
